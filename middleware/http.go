@@ -11,15 +11,16 @@
 //	// Wrap the entire mux — every route is automatically traced.
 //	http.ListenAndServe(":8080", middleware.NewHTTPHandler(mux))
 //
-// # Route tagging (Go 1.22+ ServeMux)
+// # Route tagging (Go 1.23+ ServeMux)
 //
 //	mux.Handle("GET /products/{id}",
 //	    middleware.PatternMiddleware(http.HandlerFunc(handleGetProduct)))
 //
-// PatternMiddleware reads r.Pattern (the matched route template) after the
-// ServeMux has done its routing and back-fills the span name and http.route
-// attribute so every trace shows the template ("/products/{id}") instead of
-// the concrete path ("/products/42").
+// PatternMiddleware reads r.Pattern (the matched route template, available
+// since Go 1.23) after the ServeMux has done its routing and back-fills the
+// span name and http.route attribute so every trace shows the template
+// ("/products/{id}") instead of the concrete path ("/products/42").
+// On Go 1.21 and 1.22 the function is a no-op pass-through.
 //
 // # Client instrumentation
 //
@@ -31,11 +32,8 @@ package middleware
 
 import (
 	"net/http"
-	"strings"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"go.opentelemetry.io/otel/trace"
 )
 
 // NewHTTPHandler wraps handler with OpenTelemetry tracing and HTTP server
@@ -54,45 +52,6 @@ func NewHTTPHandler(handler http.Handler, opts ...otelhttp.Option) http.Handler 
 		}),
 	}
 	return otelhttp.NewHandler(handler, "", append(defaults, opts...)...)
-}
-
-// PatternMiddleware is a thin wrapper that must be applied to individual route
-// handlers (not the whole mux). After the Go 1.22 ServeMux sets r.Pattern on
-// the request it:
-//
-//  1. Renames the current OTel span to "<METHOD> <route>" (e.g. "GET /products/{id}")
-//  2. Sets the http.route span attribute to the route template ("/products/{id}")
-//  3. Adds the http.route attribute to the request's metrics labeler so that
-//     the otelhttp HTTP server duration/size histograms are broken out per route.
-//
-// Example:
-//
-//	mux.Handle("GET /products/{id}",
-//	    middleware.PatternMiddleware(http.HandlerFunc(s.handleGetProduct)))
-func PatternMiddleware(h http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Pattern != "" {
-			route := patternToRoute(r.Pattern)
-			attr := semconv.HTTPRoute(route)
-
-			span := trace.SpanFromContext(r.Context())
-			span.SetName(r.Method + " " + route)
-			span.SetAttributes(attr)
-
-			labeler, _ := otelhttp.LabelerFromContext(r.Context())
-			labeler.Add(attr)
-		}
-		h.ServeHTTP(w, r)
-	})
-}
-
-// patternToRoute strips the optional HTTP-method prefix from a Go 1.22
-// ServeMux pattern.  "GET /products/{id}" → "/products/{id}"
-func patternToRoute(pattern string) string {
-	if idx := strings.Index(pattern, " "); idx >= 0 {
-		return pattern[idx+1:]
-	}
-	return pattern
 }
 
 // NewHTTPTransport wraps base (or http.DefaultTransport when base is nil) with
