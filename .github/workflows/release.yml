@@ -90,7 +90,7 @@ jobs:
         with:
           fetch-depth: 0   # full history required for changelog diff
 
-      - name: Build changelog entry and update CHANGELOG.md
+      - name: Build changelog entry
         id: changelog
         run: |
           CURRENT_TAG="${{ github.ref_name }}"
@@ -113,30 +113,10 @@ jobs:
 
           COMMITS=$(git log "$RANGE" --pretty=format:"- %s" --no-merges)
 
-          # Write entry to a temp file to safely handle multiline content
-          cat > /tmp/new_entry.md << ENTRY_EOF
-          ## [${VERSION}] - ${DATE}
-
-          ${COMMITS}
-
-          [${VERSION}]: ${COMPARE_URL}
-          ENTRY_EOF
-
-          # Dedent the heredoc (strip leading spaces introduced by indentation)
-          sed -i 's/^          //' /tmp/new_entry.md
-
-          # Insert the new entry after the first "---" separator in CHANGELOG.md
-          awk '
-            /^---$/ && !done {
-              print
-              print ""
-              while ((getline line < "/tmp/new_entry.md") > 0) print line
-              print ""
-              done=1
-              next
-            }
-            { print }
-          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+          # Write entry to a temp file (persists across steps in the same job)
+          printf '## [%s] - %s\n\n%s\n\n[%s]: %s\n' \
+            "$VERSION" "$DATE" "$COMMITS" "$VERSION" "$COMPARE_URL" \
+            > /tmp/new_entry.md
 
           # Expose body for the GitHub Release step
           echo "release_body<<BODY_EOF" >> "$GITHUB_OUTPUT"
@@ -154,8 +134,25 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Switch to main BEFORE modifying any files so git checkout
+          # doesn't complain about local changes being overwritten.
           git fetch origin main
           git checkout main
+
+          # Insert the new entry after the first "---" separator in CHANGELOG.md
+          awk '
+            /^---$/ && !done {
+              print
+              print ""
+              while ((getline line < "/tmp/new_entry.md") > 0) print line
+              print ""
+              done=1
+              next
+            }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+
           git add CHANGELOG.md
           git diff --cached --quiet \
             && echo "No CHANGELOG changes to commit" \
