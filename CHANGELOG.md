@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.1] - 2026-04-27
 
+- fix: checkout main before modifying CHANGELOG in release workflow
+- chore: update CHANGELOG for v0.1.1
+
+[0.1.1]: https://github.com/Tracelit-AI/tracelit-go/compare/v0.1.2...v0.1.1
+
+
+## [0.1.1] - 2026-04-27
+
 - fix: update module path to github.com/tracelit-ai/tracelit-go
 - chore: update CHANGELOG for v0.1.1
 - chore: bump version to 0.1.1
