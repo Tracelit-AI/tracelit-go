@@ -45,7 +45,7 @@ import (
 )
 
 // Version is the current Tracelit Go SDK version.
-const Version = "0.1.0"
+const Version = "0.1.1"
 
 // SDK is the central object for the Tracelit Go SDK. It holds all configured
 // OTel providers and must be shut down gracefully on application exit.
