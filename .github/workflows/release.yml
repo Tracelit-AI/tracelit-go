@@ -1,0 +1,182 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write   # create GitHub Releases + push CHANGELOG commit back to main
+  id-token: write   # SLSA provenance (public repo)
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build ./...
+
+      - name: Run tests
+        run: go test ./... -coverprofile=coverage.out -covermode=atomic
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: test
+    environment: go-publish
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build
+        run: go build ./...
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          TAG="${{ github.ref_name }}"
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *"-"* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The release.sh script bumps tracelit.go before tagging, so the version
+      # is already correct here. This sed is idempotent (--allow-same-version equivalent).
+      - name: Sync version in tracelit.go
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/const Version = \".*\"/const Version = \"${VERSION}\"/" tracelit.go
+
+      # Go modules are consumed directly from git tags — no registry push needed.
+      # Verify the module builds cleanly under the tagged version.
+      - name: Verify module is go-gettable
+        run: |
+          go list -m github.com/tracelit/tracelit-go
+          go build ./...
+
+  github-release:
+    name: GitHub Release
+    runs-on: ubuntu-latest
+    needs: publish
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history required for changelog diff
+
+      - name: Build changelog entry and update CHANGELOG.md
+        id: changelog
+        run: |
+          CURRENT_TAG="${{ github.ref_name }}"
+          VERSION="${CURRENT_TAG#v}"
+          DATE=$(date +%Y-%m-%d)
+
+          # Find the previous semver tag (excluding the current one)
+          PREV_TAG=$(git tag --sort=-version:refname \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+' \
+            | grep -v "^${CURRENT_TAG}$" \
+            | head -1)
+
+          if [ -n "$PREV_TAG" ]; then
+            RANGE="${PREV_TAG}..${CURRENT_TAG}"
+            COMPARE_URL="https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${CURRENT_TAG}"
+          else
+            RANGE="${CURRENT_TAG}"
+            COMPARE_URL="https://github.com/${{ github.repository }}/commits/${CURRENT_TAG}"
+          fi
+
+          COMMITS=$(git log "$RANGE" --pretty=format:"- %s" --no-merges)
+
+          # Write entry to a temp file to safely handle multiline content
+          cat > /tmp/new_entry.md << ENTRY_EOF
+          ## [${VERSION}] - ${DATE}
+
+          ${COMMITS}
+
+          [${VERSION}]: ${COMPARE_URL}
+          ENTRY_EOF
+
+          # Dedent the heredoc (strip leading spaces introduced by indentation)
+          sed -i 's/^          //' /tmp/new_entry.md
+
+          # Insert the new entry after the first "---" separator in CHANGELOG.md
+          awk '
+            /^---$/ && !done {
+              print
+              print ""
+              while ((getline line < "/tmp/new_entry.md") > 0) print line
+              print ""
+              done=1
+              next
+            }
+            { print }
+          ' CHANGELOG.md > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
+
+          # Expose body for the GitHub Release step
+          echo "release_body<<BODY_EOF" >> "$GITHUB_OUTPUT"
+          echo "$COMMITS" >> "$GITHUB_OUTPUT"
+          echo "BODY_EOF" >> "$GITHUB_OUTPUT"
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *"-"* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push CHANGELOG.md to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+          git checkout main
+          git add CHANGELOG.md
+          git diff --cached --quiet \
+            && echo "No CHANGELOG changes to commit" \
+            || git commit -m "chore: update CHANGELOG for ${{ github.ref_name }}"
+          git push origin main
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag     = context.ref.replace('refs/tags/', '');
+            const version = tag.replace(/^v/, '');
+            const body    = `${{ steps.changelog.outputs.release_body }}`;
+            const isPrerelease = version.includes('-');
+
+            await github.rest.repos.createRelease({
+              owner:      context.repo.owner,
+              repo:       context.repo.repo,
+              tag_name:   tag,
+              name:       `v${version}`,
+              body:       body || `Release ${tag}`,
+              prerelease: isPrerelease,
+              draft:      false,
+            });

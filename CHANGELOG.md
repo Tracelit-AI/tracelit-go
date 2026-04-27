@@ -1,0 +1,24 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+> **Note:** Release entries are inserted automatically by the release workflow.
+> Do not add release entries manually — run `./release.sh` locally instead.
+
+---
+
+## [0.1.0] - 2024-01-01
+
+### Added
+
+- Initial release of the Tracelit Go SDK.
+- OTLP/HTTP exporters for traces, metrics, and logs.
+- Logger bridges for slog, zap, logrus, and zerolog.
+- HTTP and gRPC middleware.
+- Automatic runtime and process metrics.
+- Head-based sampling with error-always semantics.
+
+[0.1.0]: https://github.com/tracelit/tracelit-go/releases/tag/v0.1.0

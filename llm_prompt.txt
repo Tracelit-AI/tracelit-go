@@ -1,0 +1,68 @@
+You are working on the Tracelit Go SDK (github.com/tracelit/tracelit-go).
+
+## What this SDK does
+
+A thin, idiomatic Go wrapper over the OpenTelemetry Go SDK that:
+- Configures OTLP/HTTP exporters for traces, metrics, and logs.
+- Sends telemetry to the Tracelit ingest endpoint (https://ingest.tracelit.app) with
+  Bearer token auth via TRACELIT_API_KEY.
+- Provides a clean public API: tracelit.New(...) / tracelit.Configure(...) / tracelit.Shutdown(ctx).
+- Exports logger bridges for slog, zap (Uber), logrus, and zerolog.
+- Provides HTTP and gRPC middleware (otelhttp / otelgrpc wrappers).
+- Automatically polls and exports Go runtime metrics (goroutines, GC, memory) every 60 s.
+- Supports head-based sampling (WithSampleRate) with error-always semantics via the
+  custom sampler in internal/sampler.
+
+## Module layout
+
+  tracelit.go          — SDK struct, New/Configure/Shutdown, global API
+  config.go            — Config struct, Option funcs, newConfig()
+  instrumentation.go   — setupTraces / setupMetrics / setupLogs helpers
+  metrics.go           — Counter / Histogram helpers + runtime pollers
+  span.go              — StartSpan / StartServerSpan / StartClientSpan etc., SpanWrapper
+  bridge/              — Logger bridge adapters (slog, zap, logrus, zerolog)
+  middleware/          — HTTP and gRPC middleware
+  internal/logproc/    — MinSeverityProcessor (log pipeline filter)
+  internal/processor/  — BatchProcessorWithSampler (trace pipeline)
+  internal/sampler/    — ErrorAlwaysSampler (always export error spans)
+  test/                — Integration-style tests
+
+## Version
+
+The canonical SDK version lives as a Go constant:
+
+  const Version = "x.y.z"   // in tracelit.go
+
+Releases are cut with ./release.sh which bumps this constant, commits to main,
+then pushes an annotated tag (v<semver>) which triggers the GitHub Actions
+release workflow.
+
+## Key design rules
+
+1. All OTel provider registration happens inside New(); the SDK uses the global
+   OTel API everywhere else so that downstream libraries pick up the providers
+   automatically.
+2. validateAPIKey makes a single lightweight POST /v1/logs at startup; 401 is
+   fatal, all other errors (5xx, network) are non-fatal so the SDK degrades
+   gracefully when the backend is temporarily unreachable.
+3. When Enabled=false the SDK returns a no-op SDK struct immediately — no
+   network calls, no provider setup.
+4. The ErrorAlwaysSampler wraps whatever parent sampler is configured and
+   overrides DROP decisions to RECORD_AND_SAMPLE when the span has an error
+   status or a recorded exception.
+
+## Environment variables
+
+  TRACELIT_API_KEY         Required. Bearer token.
+  TRACELIT_SERVICE_NAME    Required. Shows in the Tracelit UI.
+  TRACELIT_ENVIRONMENT     Default: "production".
+  TRACELIT_ENDPOINT        Default: "https://ingest.tracelit.app".
+  TRACELIT_SAMPLE_RATE     Default: 1.0. Range: 0.0–1.0.
+  TRACELIT_ENABLED         Default: "true". Set "false" to disable all telemetry.
+
+## Testing conventions
+
+- Tests live under test/ and use standard Go testing + testify/assert.
+- Unit tests for internal packages live alongside the package (e.g. internal/sampler/sampler_test.go).
+- Run all tests: go test ./...
+- Run with race detector: go test -race ./...
