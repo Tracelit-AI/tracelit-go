@@ -1,4 +1,4 @@
-module github.com/tracelit/tracelit-go
+module github.com/tracelit-ai/tracelit-go
 
 go 1.22.0
 

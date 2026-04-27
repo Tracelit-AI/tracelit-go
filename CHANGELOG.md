@@ -30,4 +30,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic runtime and process metrics.
 - Head-based sampling with error-always semantics.
 
-[0.1.0]: https://github.com/tracelit/tracelit-go/releases/tag/v0.1.0
+[0.1.0]: https://github.com/tracelit-ai/tracelit-go/releases/tag/v0.1.0

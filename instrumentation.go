@@ -19,9 +19,9 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 
-	"github.com/tracelit/tracelit-go/internal/logproc"
-	"github.com/tracelit/tracelit-go/internal/processor"
-	"github.com/tracelit/tracelit-go/internal/sampler"
+	"github.com/tracelit-ai/tracelit-go/internal/logproc"
+	"github.com/tracelit-ai/tracelit-go/internal/processor"
+	"github.com/tracelit-ai/tracelit-go/internal/sampler"
 )
 
 // exporterRetry is the shared retry policy applied to every OTLP exporter.

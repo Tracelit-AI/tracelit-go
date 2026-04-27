@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/log/logtest"
 
-	"github.com/tracelit/tracelit-go/bridge"
+	"github.com/tracelit-ai/tracelit-go/bridge"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────

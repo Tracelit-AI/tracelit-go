@@ -15,7 +15,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 	"go.opentelemetry.io/otel/trace"
 
-	tracelit "github.com/tracelit/tracelit-go"
+	tracelit "github.com/tracelit-ai/tracelit-go"
 )
 
 // newTestTP wires an in-memory TracerProvider and registers it globally.

@@ -76,7 +76,7 @@ jobs:
       # Verify the module builds cleanly under the tagged version.
       - name: Verify module is go-gettable
         run: |
-          go list -m github.com/tracelit/tracelit-go
+          go list -m github.com/tracelit-ai/tracelit-go
           go build ./...
 
   github-release:

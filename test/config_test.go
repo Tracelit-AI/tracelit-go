@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	tracelit "github.com/tracelit/tracelit-go"
+	tracelit "github.com/tracelit-ai/tracelit-go"
 )
 
 // ─────────────────────────────────────────────────────────────────────────────

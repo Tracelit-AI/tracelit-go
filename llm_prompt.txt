@@ -1,4 +1,4 @@
-You are working on the Tracelit Go SDK (github.com/tracelit/tracelit-go).
+You are working on the Tracelit Go SDK (github.com/tracelit-ai/tracelit-go).
 
 ## What this SDK does
 

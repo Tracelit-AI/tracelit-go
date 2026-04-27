@@ -7,7 +7,7 @@ A thin, idiomatic wrapper over the [OpenTelemetry Go SDK](https://github.com/ope
 ## Installation
 
 ```bash
-go get github.com/tracelit/tracelit-go
+go get github.com/tracelit-ai/tracelit-go
 ```
 
 ## Quick start
@@ -19,7 +19,7 @@ import (
     "context"
     "log"
 
-    "github.com/tracelit/tracelit-go"
+    "github.com/tracelit-ai/tracelit-go"
 )
 
 func main() {
@@ -76,7 +76,7 @@ Tracelit without further configuration.
 ### Manual spans
 
 ```go
-import "github.com/tracelit/tracelit-go"
+import "github.com/tracelit-ai/tracelit-go"
 
 func processOrder(ctx context.Context, order Order) error {
     ctx, span := tracelit.StartSpan(ctx, "process-order",
@@ -182,7 +182,7 @@ for _, item := range items {
 
 ```go
 import (
-    "github.com/tracelit/tracelit-go/middleware"
+    "github.com/tracelit-ai/tracelit-go/middleware"
     "net/http"
 )
 
@@ -201,7 +201,7 @@ resp, err := client.Get("https://api.stripe.com/v1/charges")
 ## gRPC instrumentation
 
 ```go
-import "github.com/tracelit/tracelit-go/middleware"
+import "github.com/tracelit-ai/tracelit-go/middleware"
 
 // Server
 grpcServer := grpc.NewServer(
@@ -225,7 +225,7 @@ traces in the Tracelit UI.
 ```go
 import (
     "log/slog"
-    "github.com/tracelit/tracelit-go/bridge"
+    "github.com/tracelit-ai/tracelit-go/bridge"
 )
 
 // Replace the default global slog logger.
@@ -239,7 +239,7 @@ slog.InfoContext(ctx, "order created", "order_id", order.ID)
 
 ```go
 import (
-    "github.com/tracelit/tracelit-go/bridge"
+    "github.com/tracelit-ai/tracelit-go/bridge"
     "go.uber.org/zap"
     "go.uber.org/zap/zapcore"
 )
@@ -262,7 +262,7 @@ logger.Info("order created", zap.String("order_id", order.ID))
 ```go
 import (
     "github.com/sirupsen/logrus"
-    "github.com/tracelit/tracelit-go/bridge"
+    "github.com/tracelit-ai/tracelit-go/bridge"
 )
 
 logrus.AddHook(bridge.NewLogrusHook())
@@ -278,7 +278,7 @@ import (
     "os"
     "github.com/rs/zerolog"
     "github.com/rs/zerolog/log"
-    "github.com/tracelit/tracelit-go/bridge"
+    "github.com/tracelit-ai/tracelit-go/bridge"
 )
 
 // Replace the global zerolog logger.
@@ -348,9 +348,9 @@ import (
     "os/signal"
     "syscall"
 
-    "github.com/tracelit/tracelit-go"
-    "github.com/tracelit/tracelit-go/bridge"
-    "github.com/tracelit/tracelit-go/middleware"
+    "github.com/tracelit-ai/tracelit-go"
+    "github.com/tracelit-ai/tracelit-go/bridge"
+    "github.com/tracelit-ai/tracelit-go/middleware"
 )
 
 func main() {

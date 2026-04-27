@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"github.com/tracelit/tracelit-go/internal/sampler"
+	"github.com/tracelit-ai/tracelit-go/internal/sampler"
 )
 
 func TestNewErrorAlways_Description(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/sdk/trace/tracetest"
 
-	"github.com/tracelit/tracelit-go/internal/processor"
-	"github.com/tracelit/tracelit-go/internal/sampler"
+	"github.com/tracelit-ai/tracelit-go/internal/processor"
+	"github.com/tracelit-ai/tracelit-go/internal/sampler"
 )
 
 func TestNewErrorSpan_NonErrorSpan_NotExported(t *testing.T) {
