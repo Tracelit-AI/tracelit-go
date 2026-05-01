@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] - 2026-05-01
+
+- fix: use httptest server in ValidBoundarySampleRates test to avoid live 401
+- chore: bump version to 0.1.2
+- feat: add automatic git commit SHA resolution for telemetry
+- chore: update CHANGELOG for v0.1.1
+
+[0.1.2]: https://github.com/Tracelit-AI/tracelit-go/compare/v0.1.1...v0.1.2
+
+
 ## [0.1.1] - 2026-04-27
 
 - fix: checkout main before modifying CHANGELOG in release workflow
