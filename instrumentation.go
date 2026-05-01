@@ -1,8 +1,13 @@
 package tracelit
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -174,6 +179,14 @@ func buildResource(ctx context.Context, cfg Config) (*resource.Resource, error) 
 		attribute.String("telemetry.sdk.version", Version),
 	}
 
+	// Attach the git commit SHA automatically — no developer config needed.
+	// Resolution order mirrors every other Tracelit SDK:
+	//   1. Common CI/CD env vars (set by GitHub Actions, Render, GitLab, etc.)
+	//   2. `git rev-parse HEAD` — works in local dev and any cloned environment.
+	if sha := resolveCommitSHA(); sha != "" {
+		attrs = append(attrs, attribute.String("service.commit_sha", sha))
+	}
+
 	for k, v := range cfg.ResourceAttributes {
 		attrs = append(attrs, attribute.String(k, v))
 	}
@@ -187,5 +200,49 @@ func buildResource(ctx context.Context, cfg Config) (*resource.Resource, error) 
 		return nil, fmt.Errorf("tracelit: building resource: %w", err)
 	}
 	return res, nil
+}
+
+// commitSHAOnce ensures the git subprocess runs at most once per process.
+var (
+	commitSHAOnce sync.Once
+	commitSHA     string
+)
+
+// resolveCommitSHA returns the current git commit SHA, trying common CI/CD
+// environment variables first and falling back to running `git rev-parse HEAD`.
+// The result is cached for the lifetime of the process.
+func resolveCommitSHA() string {
+	commitSHAOnce.Do(func() {
+		// 1. Common CI/CD environment variables — zero friction for most pipelines.
+		for _, envVar := range []string{
+			"GITHUB_SHA",        // GitHub Actions
+			"GIT_COMMIT",        // Jenkins, generic
+			"SOURCE_COMMIT",     // Heroku
+			"RENDER_GIT_COMMIT", // Render
+			"CI_COMMIT_SHA",     // GitLab CI
+			"CIRCLE_SHA1",       // CircleCI
+			"BITBUCKET_COMMIT",  // Bitbucket Pipelines
+		} {
+			if v := strings.TrimSpace(os.Getenv(envVar)); len(v) >= 7 {
+				commitSHA = v
+				return
+			}
+		}
+
+		// 2. Ask git directly — works in local dev and CI environments where
+		//    the source tree is cloned. The 3-second timeout prevents startup
+		//    stalls in environments where git is absent or the repo is huge.
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		cmd := exec.CommandContext(ctx, "git", "rev-parse", "HEAD")
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		if err := cmd.Run(); err == nil {
+			if sha := strings.TrimSpace(out.String()); len(sha) >= 7 {
+				commitSHA = sha
+			}
+		}
+	})
+	return commitSHA
 }
 
