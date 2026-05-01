@@ -5,7 +5,10 @@ package tracelit_test
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -163,15 +166,27 @@ func TestNew_SampleRateTooHigh_ReturnsError(t *testing.T) {
 
 func TestNew_ValidBoundarySampleRates_NoError(t *testing.T) {
 	clearEnv(t)
+
+	// Use a local server that returns 204 so validateAPIKey passes without
+	// hitting the real ingest endpoint. The OTel exporters also target this
+	// server; they get 204 back and treat it as a successful export.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
 	for _, rate := range []float64{0.0, 0.5, 1.0} {
 		t.Run(fmt.Sprintf("rate=%.1f", rate), func(t *testing.T) {
-			clearEnv(t)
-			t.Setenv("TRACELIT_API_KEY", "k")
-			t.Setenv("TRACELIT_SERVICE_NAME", "s")
-			sdk, err := tracelit.New(tracelit.WithSampleRate(rate))
+			sdk, err := tracelit.New(
+				tracelit.WithAPIKey("k"),
+				tracelit.WithServiceName("s"),
+				tracelit.WithEndpoint(srv.URL),
+				tracelit.WithSampleRate(rate),
+			)
 			require.NoError(t, err, "rate=%v should be valid", rate)
-			// Shutdown may return a network error in offline CI — that is expected.
-			_ = sdk.Shutdown(context.Background())
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = sdk.Shutdown(ctx)
 		})
 	}
 }
