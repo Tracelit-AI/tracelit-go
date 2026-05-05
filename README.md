@@ -1,4 +1,4 @@
-# tracelit-go
+# Tracelit SDK — tracelit-go
 
 Go SDK for [Tracelit](https://tracelit.app) observability and monitoring.
 
@@ -18,13 +18,14 @@ package main
 import (
     "context"
     "log"
+    "os"
 
     "github.com/tracelit-ai/tracelit-go"
 )
 
 func main() {
     sdk, err := tracelit.New(
-        tracelit.WithAPIKey("tl_live_abc123"),
+        tracelit.WithAPIKey(os.Getenv("TRACELIT_API_KEY")),
         tracelit.WithServiceName("payments-api"),
         tracelit.WithEnvironment("production"),
     )
@@ -40,7 +41,7 @@ func main() {
 Or using environment variables (no code changes needed):
 
 ```bash
-export TRACELIT_API_KEY=tl_live_abc123
+export TRACELIT_API_KEY=your-api-key
 export TRACELIT_SERVICE_NAME=payments-api
 export TRACELIT_ENVIRONMENT=production
 ```
@@ -317,7 +318,7 @@ every 60 seconds — no extra code required.
 ```go
 // Keep 10% of traces. Error spans are always exported regardless.
 sdk, err := tracelit.New(
-    tracelit.WithAPIKey("tl_live_abc123"),
+    tracelit.WithAPIKey(os.Getenv("TRACELIT_API_KEY")),
     tracelit.WithServiceName("high-traffic-api"),
     tracelit.WithSampleRate(0.1),
 )
@@ -328,7 +329,7 @@ sdk, err := tracelit.New(
 ```go
 // Disable in test environments without removing the SDK.
 sdk, err := tracelit.New(
-    tracelit.WithAPIKey("tl_live_abc123"),
+    tracelit.WithAPIKey(os.Getenv("TRACELIT_API_KEY")),
     tracelit.WithServiceName("my-service"),
     tracelit.WithEnabled(false),
 )
@@ -397,15 +398,9 @@ func main() {
 }
 ```
 
-## LLM / AI context
-
-If you are working with this SDK using an AI coding assistant, see
-[llm_prompt.txt](./llm_prompt.txt) for a structured context prompt you can
-attach to your session.
-
 ## Changelog
 
-See [CHANGELOG.md](./CHANGELOG.md).
+See the [release history](https://docs.tracelit.io/changelog) on the Tracelit docs.
 
 ## License
 
