@@ -3,6 +3,7 @@ package processor_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,8 +57,10 @@ func TestNewErrorSpan_UnsampledErrorSpan_IsExported(t *testing.T) {
 	span.SetStatus(codes.Error, "unsampled error")
 	span.End()
 
+	require.Eventually(t, func() bool {
+		return len(exp.GetSpans()) == 1
+	}, time.Second, 10*time.Millisecond, "unsampled error span must be exported by ErrorSpanProcessor")
 	stubs := exp.GetSpans()
-	require.Len(t, stubs, 1, "unsampled error span must be exported by ErrorSpanProcessor")
 	assert.Equal(t, "err-unsampled", stubs[0].Name)
 	assert.Equal(t, codes.Error, stubs[0].Status.Code)
 }
@@ -104,7 +107,9 @@ func TestPipeline_UnsampledError_ExportedOnceByErrorProcessor(t *testing.T) {
 	span.End()
 
 	assert.Empty(t, batchExp.GetSpans(), "BatchSpanProcessor must not export RECORD_ONLY spans")
-	require.Len(t, errorExp.GetSpans(), 1, "ErrorSpanProcessor must export unsampled error exactly once")
+	require.Eventually(t, func() bool {
+		return len(errorExp.GetSpans()) == 1
+	}, time.Second, 10*time.Millisecond, "ErrorSpanProcessor must export unsampled error exactly once")
 }
 
 func TestPipeline_SampledError_OnlyInBatch(t *testing.T) {
