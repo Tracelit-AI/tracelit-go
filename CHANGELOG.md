@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.4] - 2026-05-17
+
+- chore: bump version to 0.1.4
+- feat: enhance error span processing with asynchronous export
+- chore: update CHANGELOG for v0.1.3
+
+[0.1.4]: https://github.com/Tracelit-AI/tracelit-go/compare/v0.1.3...v0.1.4
+
+
 ## [0.1.3] - 2026-05-05
 
 - chore: bump version to 0.1.3
